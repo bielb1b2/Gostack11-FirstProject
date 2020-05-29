@@ -1,41 +1,61 @@
-import React, { createContext, useContext, useCallback } from 'react';
+import React, { createContext, useContext, useCallback, useState } from 'react';
+import { uuid } from 'uuidv4';
 
 import ToastContainer from '../components/ToastContainer';
 
+export interface ToastMessages {
+    id: string;
+    type?: 'success' | 'error' | 'info';
+    title: string;
+    description?: string;
+}
+
 interface ToastContextData {
-    addToast(): void;
-    removeToast(): void;
+    addToast(message: Omit<ToastMessages, 'id'>): void;
+    removeToast(id: string): void;
 }
 
 const toastContext = createContext<ToastContextData>({} as ToastContextData);
 
 const ToastProvider: React.FC = ({ children }) => {
+    const [messages, setMessages] = useState<ToastMessages[]>([]);
 
-    const addToast = useCallback(() => {
-        console.log('addToast');
-    }, []);
+    const addToast = useCallback(
+        ({ title, type, description }: Omit<ToastMessages, 'id'>) => {
+            const id = uuid();
 
+            const toast = {
+                id,
+                type,
+                title,
+                description,
+            };
 
-    const removeToast = useCallback(() => {
-        console.log('removeToast');
+            setMessages((oldMessages) => [...oldMessages, toast]);
+        },
+        [],
+    );
+
+    const removeToast = useCallback((id: string) => {
+        setMessages((state) => state.filter((message) => message.id !== id));
     }, []);
 
     return (
         <toastContext.Provider value={{ addToast, removeToast }}>
             {children}
-            <ToastContainer />
+            <ToastContainer messages={messages} />
         </toastContext.Provider>
     );
-}
+};
 
 function useToast(): ToastContextData {
     const context = useContext(toastContext);
 
-    if(!context) {
+    if (!context) {
         throw new Error('useToast must be used within a ToastProvider');
     }
 
     return context;
 }
 
-export { useToast, ToastProvider};
+export { useToast, ToastProvider };
